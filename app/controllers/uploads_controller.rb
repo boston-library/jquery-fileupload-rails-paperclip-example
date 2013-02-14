@@ -1,3 +1,5 @@
+require 'digest/md5'
+
 class UploadsController < ApplicationController
   # GET /uploads
   # GET /uploads.json
@@ -41,15 +43,27 @@ class UploadsController < ApplicationController
   # POST /uploads.json
   def create
     @upload = Upload.new(params[:upload])
+    puts 'jere'
+    puts request.headers['Content-MD5']
+    #the_file = params[:upload][:file]
+    #data1 = the_file.read
+    #digest = Digest::MD5.hexdigest(data1)
+    #puts digest
 
     respond_to do |format|
       if @upload.save
+        #checksum_of_saved_file = File.read(@upload.upload.url(:original)
         format.html {
           render :json => [@upload.to_jq_upload].to_json,
           :content_type => 'text/html',
           :layout => false
         }
-        format.json { render json: [@upload.to_jq_upload].to_json, status: :created, location: @upload }
+
+        the_result = @upload.to_jq_upload
+        the_result["md5"] = request.headers['Content-MD5']
+        the_result = [the_result]
+
+        format.json { render json: the_result.to_json, status: :created, location: @upload, md5: request.headers['Content-MD5'] }
       else
         format.html { render action: "new" }
         format.json { render json: @upload.errors, status: :unprocessable_entity }

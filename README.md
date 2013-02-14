@@ -2,12 +2,12 @@
 
 This is an example app that uses the following gems to upload files for your Rails application:
 
-* [jquery-fileupload-rails](https://github.com/tors/jquery-fileupload-rails)
+* [jquery-fileupload-rails](https://github.com/boston-library/jquery-fileupload-rails)
 * [Paperclip](https://github.com/thoughtbot/paperclip)
 
 This app also uses [twitter-bootstrap-rails](https://github.com/seyhunak/twitter-bootstrap-rails) but is not required.
 
-This app uses Rails 3.2.6.
+This app uses Rails 3.2.8.
 
 ## Running the app
 
@@ -16,6 +16,10 @@ This app uses Rails 3.2.6.
     rails server
 
 Open http:://localhost:3000
+
+## Basic idea on how clientside checksumming works
+
+http:://localhost:3000/checksum.html (in the public directory)
 
 ## License
 The Unlicense (i.e Public Domain)

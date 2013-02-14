@@ -1,0 +1,97 @@
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+<script src="md5.js"></script>
+<html>
+<body>
+<script type="text/javascript">
+    // create a streaming md5 calculator for this file
+    function startCheckSumCalcs(file) {
+
+        var md5 = new MD5();
+        var next_step = function() {
+            // this is what we'll do after checksumming is complete
+            $('#checksum_output').html(file.md5);
+        };
+        // kick off the checksum process in the background.
+        var kickoff_checksum = function() {
+            calculate_checksum(file, 0, md5, next_step);
+        };
+        setTimeout(kickoff_checksum, 0);
+    }
+
+
+    /* Incrementally calculate a file checksum without eliminating browser
+     * responsiveness.
+     *   :param: file = the file (an html5 file object)
+     *   :param: indicator = a dom element to update with progress
+     *   :param: start = the file offset to start checksumming at
+     *   :param: md5 = a streaming md5 calculator object
+     *   :param: next_step = a function to call after md5 calculation
+     * This method grabs a slice from the file starting at `start` and asks
+     * the browser to load that slice. When the slice is loaded, this function
+     * will update `indicator` and push the chunk's data into `md5`. If
+     * there's more file to process, it'll recurse to handle the next slice.
+     * Once all slices have been processed, it'll attach the checksum to the
+     * file object and call `next_step`.
+     */
+    function calculate_checksum(file, start, md5, next_step) {
+        var size = 1024 * 1024; // 1MB chunks seem to work well, but might still want tweaking
+
+        // Due to changes in the HTML5 Blob/File spec for slice, Mozilla
+        // and Webkit now have name-spaced slice functions that implement
+        // the new version of the spec.  Use those first, if available.
+        if (typeof window.Blob.prototype.webkitSlice == 'function') {
+            // Google Chrome -  http://trac.webkit.org/changeset/83873
+            var slice = file.webkitSlice(start, start + size);
+        } else if (typeof window.Blob.prototype.mozSlice == 'function') {
+            // Mozilla Firefox -  https://developer.mozilla.org/en/DOM/Blob
+            var slice = file.mozSlice(start, start + size);
+        } else {
+            // Using the old-spec slice function for now:
+            //   http://www.w3.org/TR/2009/WD-FileAPI-20091117/#dfn-Blob
+            // Updated spec for Blob.slice (as implemented in mozSlice and webkitSlice):
+            //   http://www.w3.org/TR/2010/WD-FileAPI-20101026/#dfn-Blob
+            var slice = file.slice(start, size);
+        }
+
+        // make a reader for handling the current slice.
+        var reader = new FileReader();
+        reader.onloadend = function (evt){
+
+
+            // then ship the data to the md5 calculator
+            md5.process_bytes(evt.target.result);
+
+            if (start + size < file.size) {
+                // if there are more chunks then kick off the next chunk.
+                var process_next_slice = function () {
+                    calculate_checksum(file, start+size,
+                            md5, next_step);
+                };
+                setTimeout(process_next_slice, 0);
+            } else {
+                // if we're done with the file then record the md5sum
+                md5.finish();
+                file.md5 = md5.asString();
+                console.log(file.name + ' checksum ' + file.md5);
+                // and go where the original caller asked us to
+                next_step();
+            }
+        };
+        // kick off the read that we just configured
+        reader.readAsBinaryString(slice);
+    }
+    function handleFileSelect() {
+        var file = document.getElementById('testFile').files[0]; // FileList object
+        startCheckSumCalcs(file);
+    }
+
+</script>
+
+<form name="testForm">
+    <input type="file" name="testFile" id="testFile" />
+    <button onclick="handleFileSelect(); return false;">calculate checksum</button><br/> <br />
+    Checksum is: <div id="checksum_output"></div>
+</form>
+
+</body>
+</html>
